@@ -1,0 +1,48 @@
+<!-- ios/Runner/Info.plist — tambahkan key-key ini ke dalam <dict> yang sudah ada -->
+
+<!--
+CATATAN: Ini adalah TAMBAHAN ke Info.plist yang sudah ada.
+Tambahkan key-key berikut ke dalam <dict> utama.
+-->
+
+<!-- ═══════════════════════════════════════════════════
+     LOCATION PERMISSIONS
+═══════════════════════════════════════════════════ -->
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Aplikasi ini membutuhkan akses lokasi untuk menampilkan jadwal sholat yang akurat berdasarkan posisi Anda.</string>
+
+<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>Aplikasi ini membutuhkan akses lokasi di background untuk memperbarui jadwal sholat secara otomatis setiap hari.</string>
+
+<key>NSLocationAlwaysUsageDescription</key>
+<string>Akses lokasi background diperlukan agar alarm sholat dapat diperbarui otomatis setiap hari tanpa membuka aplikasi.</string>
+
+<!-- ═══════════════════════════════════════════════════
+     BACKGROUND MODES
+═══════════════════════════════════════════════════ -->
+<key>UIBackgroundModes</key>
+<array>
+    <string>location</string>
+    <string>fetch</string>
+    <string>remote-notification</string>
+    <string>audio</string>
+    <string>processing</string>
+</array>
+
+<!-- ═══════════════════════════════════════════════════
+     NOTIFICATION
+═══════════════════════════════════════════════════ -->
+<key>NSUserNotificationUsageDescription</key>
+<string>Izin notifikasi diperlukan untuk mengirimkan pengingat waktu sholat.</string>
+
+<!-- ═══════════════════════════════════════════════════
+     AUDIO (untuk adzan)
+═══════════════════════════════════════════════════ -->
+<key>NSMicrophoneUsageDescription</key>
+<string>Tidak diperlukan, hanya untuk kompatibilitas audio.</string>
+
+<!-- Background task identifier -->
+<key>BGTaskSchedulerPermittedIdentifiers</key>
+<array>
+    <string>com.yourapp.prayeralarm.refresh</string>
+</array>
