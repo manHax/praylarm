@@ -14,6 +14,7 @@ import 'package:prayer_alarm_app/services/alarm_service.dart';
 import 'package:prayer_alarm_app/theme/app_text_styles.dart';
 import 'package:prayer_alarm_app/ui/khatam_planner_screen.dart';
 import 'settings_screen.dart';
+import 'package:prayer_alarm_app/services/pinned_notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -92,6 +93,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _scheduleAlarmsInBackground(PrayerTimes times) async {
     try {
       await AlarmService.scheduleAllAlarms(times);
+      await PinnedNotificationService.updatePinnedNotification(
+        pt: times,
+        locationStatus: _locationStatus,
+      );
     } catch (error, stackTrace) {
       debugPrint('Background alarm scheduling failed: $error');
       debugPrintStack(stackTrace: stackTrace);

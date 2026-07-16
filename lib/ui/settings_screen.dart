@@ -12,6 +12,7 @@ import 'package:prayer_alarm_app/services/location_refresh_service.dart';
 import 'package:prayer_alarm_app/services/notification_service.dart';
 import 'package:prayer_alarm_app/services/prayer_api_service.dart';
 import 'package:prayer_alarm_app/ui/alarm_preferences_screen.dart';
+import 'package:prayer_alarm_app/services/pinned_notification_service.dart';
 import 'package:prayer_alarm_app/main.dart'; // added this
 import 'package:prayer_alarm_app/theme/app_text_styles.dart';
 
@@ -24,6 +25,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _soundEnabled = true;
+  bool _pinnedNotificationEnabled = false;
   bool _vibrationEnabled = true;
   bool _notificationsEnabled = true;
   int _minutesBefore = 10;
@@ -66,6 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     setState(() {
       _soundEnabled = prefs.getBool('sound_enabled') ?? true;
+      _pinnedNotificationEnabled = prefs.getBool('pinned_notification_enabled') ?? false;
       _vibrationEnabled = prefs.getBool('vibration_enabled') ?? true;
       _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
       _minutesBefore = prefs.getInt('minutes_before') ?? 10;
@@ -93,6 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('sound_enabled', _soundEnabled);
+    await PinnedNotificationService.setEnabled(_pinnedNotificationEnabled);
     await prefs.setBool('vibration_enabled', _vibrationEnabled);
     await prefs.setBool('notifications_enabled', _notificationsEnabled);
     await prefs.setInt('minutes_before', _minutesBefore);
@@ -122,7 +126,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           lat: location.lat, 
           lng: location.lng
         );
+        
         await AlarmService.scheduleAllAlarms(pt);
+        await PinnedNotificationService.updatePinnedNotification(
+          pt: pt,
+          locationStatus: location.primaryLabel ?? location.city,
+        );
+
       } catch (_) {}
     }
   }
@@ -562,6 +572,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   fontSize: 12,
                 ),
               ),
+            ),
+          ]),
+          const SizedBox(height: 16),
+          _sectionTitle('Status Bar'),
+          _buildCard([
+            SwitchListTile(
+              title: Text(
+                'Tampilkan jadwal di status bar',
+                style: AppTextStyles.nunito(
+                  color: context.colors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Text(
+                'Menampilkan jadwal sholat & lokasi secara terus menerus (Pinned)',
+                style: AppTextStyles.nunito(
+                  color: context.colors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+              value: _pinnedNotificationEnabled,
+              activeColor: context.colors.primaryAccent,
+              onChanged: (val) {
+                setState(() => _pinnedNotificationEnabled = val);
+                _saveSettings();
+              },
             ),
           ]),
           const SizedBox(height: 16),

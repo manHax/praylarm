@@ -8,6 +8,7 @@ import 'package:prayer_alarm_app/services/alarm_service.dart';
 import 'package:prayer_alarm_app/services/location_service.dart';
 import 'package:prayer_alarm_app/services/prayer_api_service.dart';
 import 'package:prayer_alarm_app/theme/app_text_styles.dart';
+import 'package:prayer_alarm_app/services/pinned_notification_service.dart';
 
 class AlarmPreferencesScreen extends StatefulWidget {
   const AlarmPreferencesScreen({super.key});
@@ -69,6 +70,10 @@ class _AlarmPreferencesScreenState extends State<AlarmPreferencesScreen> {
           lng: location.lng
         );
         await AlarmService.scheduleAllAlarms(pt);
+        await PinnedNotificationService.updatePinnedNotification(
+          pt: pt,
+          locationStatus: 'Berhasil update lokasi',
+        );
       } catch (_) {}
     }
   }

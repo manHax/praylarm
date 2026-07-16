@@ -16,6 +16,7 @@ import 'location_service.dart';
 import 'prayer_api_service.dart';
 import 'alarm_service.dart';
 import 'home_widget_service.dart';
+import 'package:prayer_alarm_app/services/pinned_notification_service.dart';
 
 const _foregroundNotificationTitle = 'Prayer Alarm Aktif';
 const _foregroundNotificationContent = 'Memantau jadwal sholat';
@@ -137,6 +138,10 @@ class BackgroundServiceManager {
 
       // 3. Schedule semua alarm
       await AlarmService.scheduleAllAlarms(prayerTimes);
+    await PinnedNotificationService.updatePinnedNotification(
+      pt: prayerTimes,
+      locationStatus: 'Lokasi Terakhir Diperbarui', // Will be dynamic below
+    );
 
       // 4. Update homescreen widget
       await HomeWidgetService.update(prayerTimes);

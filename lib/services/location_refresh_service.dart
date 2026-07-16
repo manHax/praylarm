@@ -10,6 +10,7 @@ import 'alarm_service.dart';
 import 'home_widget_service.dart';
 import 'location_service.dart';
 import 'prayer_api_service.dart';
+import 'package:prayer_alarm_app/services/pinned_notification_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> locationRefreshAlarmCallback() async {
@@ -136,6 +137,10 @@ class LocationRefreshService {
     );
 
     await AlarmService.scheduleAllAlarms(prayerTimes);
+    await PinnedNotificationService.updatePinnedNotification(
+      pt: prayerTimes,
+      locationStatus: 'Lokasi Terakhir Diperbarui', // Will be dynamic below
+    );
     await HomeWidgetService.update(prayerTimes);
 
     final prefs = await SharedPreferences.getInstance();

@@ -125,6 +125,51 @@ class NotificationService {
     await _plugin.cancel(id);
   }
 
+  static Future<void> showPinnedNotification({
+    required String title,
+    required String body,
+  }) async {
+    await initialize();
+    
+    // Gunakan channel khusus untuk pinned notification agar tidak bunyi tiap diupdate
+    const channelId = 'pinned_prayer_channel';
+    const channelName = 'Jadwal Sholat (Pinned)';
+    
+    await createAndroidChannel(
+      id: channelId,
+      name: channelName,
+      description: 'Menampilkan jadwal sholat secara terus menerus',
+      importance: Importance.low,
+      playSound: false,
+      enableVibration: false,
+      enableLights: false,
+    );
+
+    await _plugin.show(
+      999, // ID khusus untuk pinned notification
+      title,
+      body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelId,
+          channelName,
+          channelDescription: 'Menampilkan jadwal sholat secara terus menerus',
+          importance: Importance.low,
+          priority: Priority.low,
+          ongoing: true, // Tidak bisa diswipe (pinned)
+          autoCancel: false,
+          showWhen: false,
+          icon: '@mipmap/ic_launcher',
+          styleInformation: BigTextStyleInformation(body),
+        ),
+      ),
+    );
+  }
+
+  static Future<void> cancelPinnedNotification() async {
+    await _plugin.cancel(999);
+  }
+
   static Future<void> showInstantNotification({
     required int id,
     required String title,
