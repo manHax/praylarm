@@ -1,17 +1,22 @@
-# prayer_alarm_app
+# Praylarm (Prayer Alarm App)
 
-A new Flutter project.
+Aplikasi alarm dan jadwal sholat dengan deteksi lokasi otomatis, menggunakan API dari AlAdhan.
+Aplikasi ini mendukung *Push Notification* dan *Native Android Alarm* untuk membangunkan pengguna saat waktu sholat (atau saat Imsak/Tahajud).
 
-## Getting Started
+## Download APK
+Anda bisa men-download APK versi terbaru yang sudah siap pakai (siap di-install) di folder `releases/` atau melalui tautan berikut:
 
-This project is a starting point for a Flutter application.
+- [Praylarm v1.1.0 (APK)](releases/app-release.apk)
 
-A few resources to get you started if this is your first Flutter project:
+## Fitur-Fitur
+- Deteksi lokasi GPS secara otomatis dan _background check_.
+- Tampilan responsif dengan _dark mode_ premium.
+- Pengaturan kustomisasi notifikasi / alarm penuh per-waktu sholat.
+- Fitur peringatan 10 menit sebelum waktu sholat habis.
+- Mendukung berbagai jenis alarm kustom sesuai _ringtone_ bawaan perangkat.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Cara Build Sendiri
+Jika Anda ingin me-_run_ atau mem-_build_ aplikasi ini sendiri:
+1. Pastikan Anda sudah menginstal [Flutter](https://docs.flutter.dev/get-started/install).
+2. Jalankan `flutter pub get`.
+3. Jalankan `flutter build apk` (untuk build APK).

@@ -1,6 +1,7 @@
 // lib/ui/settings_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:prayer_alarm_app/theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +11,8 @@ import 'package:prayer_alarm_app/services/alarm_service.dart';
 import 'package:prayer_alarm_app/services/location_refresh_service.dart';
 import 'package:prayer_alarm_app/services/notification_service.dart';
 import 'package:prayer_alarm_app/services/prayer_api_service.dart';
+import 'package:prayer_alarm_app/ui/alarm_preferences_screen.dart';
+import 'package:prayer_alarm_app/main.dart'; // added this
 import 'package:prayer_alarm_app/theme/app_text_styles.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -110,6 +113,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await LocationRefreshService.requestExactAlarmPermission();
     }
     await LocationRefreshService.scheduleFromSettings();
+    
+    // Reschedule alarms with new settings
+    final location = await LocationService.getLocationSilently();
+    if (location != null) {
+      try {
+        final pt = await PrayerApiService.getPrayerTimes(
+          lat: location.lat, 
+          lng: location.lng
+        );
+        await AlarmService.scheduleAllAlarms(pt);
+      } catch (_) {}
+    }
   }
 
   Future<void> _pickDailyRefreshTime() async {
@@ -119,6 +134,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (picked == null) return;
     setState(() => _dailyRefreshTime = picked);
+    await _saveSettings();
   }
 
   Future<void> _requestLocationWhenInUse() async {
@@ -140,7 +156,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _alarmSoundUri = selection.uri;
       _alarmSoundLabel = selection.label;
     });
-    await AlarmSoundService.saveSelection(selection);
+    await _saveSettings();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -157,7 +173,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _alarmSoundUri = selection.uri;
       _alarmSoundLabel = selection.label;
     });
-    await AlarmSoundService.saveSelection(selection);
+    await _saveSettings();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -230,56 +246,101 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1B2A),
+      backgroundColor: context.colors.scaffoldBackground,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A3A5C),
+        backgroundColor: context.colors.appBarBackground,
         title: Text(
           'Pengaturan',
           style: AppTextStyles.nunito(
-            color: Colors.white,
+            color: context.colors.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: context.colors.textPrimary),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.paddingOf(context).bottom),
         children: [
+          _sectionTitle('Tampilan'),
+          _buildCard([
+            ListTile(
+              leading: Icon(Icons.brightness_6, color: context.colors.primaryAccent),
+              title: Text(
+                'Mode Gelap / Terang',
+                style: AppTextStyles.nunito(color: context.colors.textPrimary),
+              ),
+              subtitle: Text(
+                'Ubah tema aplikasi',
+                style: AppTextStyles.nunito(color: context.colors.textSecondary, fontSize: 12),
+              ),
+              trailing: DropdownButton<ThemeMode>(
+                value: themeService.themeMode,
+                dropdownColor: context.colors.cardBackground,
+                underline: const SizedBox(),
+                items: const [
+                  DropdownMenuItem(value: ThemeMode.system, child: Text('Sistem')),
+                  DropdownMenuItem(value: ThemeMode.light, child: Text('Terang')),
+                  DropdownMenuItem(value: ThemeMode.dark, child: Text('Gelap')),
+                ],
+                onChanged: (mode) {
+                  if (mode != null) themeService.setThemeMode(mode);
+                },
+              ),
+            ),
+          ]),
+          const SizedBox(height: 16),
           _sectionTitle('Alarm'),
           _buildCard([
+            ListTile(
+              leading: Icon(Icons.settings_suggest, color: context.colors.primaryAccent),
+              title: Text(
+                'Konfigurasi Waktu Alarm',
+                style: AppTextStyles.nunito(color: context.colors.textPrimary),
+              ),
+              subtitle: Text(
+                'Atur jenis pengingat per sholat (Alarm / Push / Mati)',
+                style: AppTextStyles.nunito(color: context.colors.textSecondary, fontSize: 12),
+              ),
+              trailing: Icon(Icons.chevron_right, color: context.colors.iconMuted),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AlarmPreferencesScreen()),
+                );
+              },
+            ),
             _buildSwitch(
               'Suara Adzan',
               'Putar adzan saat alarm',
               Icons.volume_up,
               _soundEnabled,
-              (v) => setState(() => _soundEnabled = v),
+              (v) async { setState(() => _soundEnabled = v); await _saveSettings(); },
             ),
             _buildSwitch(
               'Getaran',
               'Getar saat alarm berbunyi',
               Icons.vibration,
               _vibrationEnabled,
-              (v) => setState(() => _vibrationEnabled = v),
+              (v) async { setState(() => _vibrationEnabled = v); await _saveSettings(); },
             ),
             _buildSwitch(
               'Notifikasi',
               'Tampilkan notifikasi push',
               Icons.notifications,
               _notificationsEnabled,
-              (v) => setState(() => _notificationsEnabled = v),
+              (v) async { setState(() => _notificationsEnabled = v); await _saveSettings(); },
             ),
             ListTile(
-              leading: const Icon(Icons.music_note, color: Color(0xFFD4AF37)),
+              leading: Icon(Icons.music_note, color: context.colors.primaryAccent),
               title: Text(
                 'Nada alarm utama',
-                style: AppTextStyles.nunito(color: Colors.white),
+                style: AppTextStyles.nunito(color: context.colors.textPrimary),
               ),
               subtitle: Text(
                 _alarmSoundMode == AlarmSoundService.customMode
                     ? 'Kustom: $_alarmSoundLabel'
                     : AlarmSoundService.defaultLabel,
                 style: AppTextStyles.nunito(
-                  color: Colors.white54,
+                  color: context.colors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -317,7 +378,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Text(
                     'Ingatkan $_minutesBefore menit sebelum masuk dan sebelum habis',
                     style: AppTextStyles.nunito(
-                      color: Colors.white,
+                      color: context.colors.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -327,11 +388,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     min: 5,
                     max: 30,
                     divisions: 5,
-                    activeColor: const Color(0xFFD4AF37),
-                    inactiveColor: Colors.white24,
+                    activeColor: context.colors.primaryAccent,
+                    inactiveColor: context.colors.divider,
                     label: '$_minutesBefore menit',
                     onChanged: (v) =>
                         setState(() => _minutesBefore = v.round()),
+                    onChangeEnd: (v) async => await _saveSettings(),
                   ),
                 ],
               ),
@@ -341,15 +403,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionTitle('Lokasi'),
           _buildCard([
             ListTile(
-              leading: const Icon(Icons.my_location, color: Color(0xFFD4AF37)),
+              leading: Icon(Icons.my_location, color: context.colors.primaryAccent),
               title: Text(
                 'Izin lokasi saat aplikasi dibuka',
-                style: AppTextStyles.nunito(color: Colors.white),
+                style: AppTextStyles.nunito(color: context.colors.textPrimary),
               ),
               subtitle: Text(
                 _permissionLabel(_locationStatus),
                 style: AppTextStyles.nunito(
-                  color: Colors.white54,
+                  color: context.colors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -359,15 +421,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.route, color: Color(0xFFD4AF37)),
+              leading: Icon(Icons.route, color: context.colors.primaryAccent),
               title: Text(
                 'Izin lokasi latar belakang',
-                style: AppTextStyles.nunito(color: Colors.white),
+                style: AppTextStyles.nunito(color: context.colors.textPrimary),
               ),
               subtitle: Text(
                 _permissionLabel(_backgroundLocationStatus),
                 style: AppTextStyles.nunito(
-                  color: Colors.white54,
+                  color: context.colors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -377,15 +439,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.schedule, color: Color(0xFFD4AF37)),
+              leading: Icon(Icons.schedule, color: context.colors.primaryAccent),
               title: Text(
                 'Cache lokasi terakhir',
-                style: AppTextStyles.nunito(color: Colors.white),
+                style: AppTextStyles.nunito(color: context.colors.textPrimary),
               ),
               subtitle: Text(
                 _formatDateTime(_lastCachedLocationAt),
                 style: AppTextStyles.nunito(
-                  color: Colors.white54,
+                  color: context.colors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -395,15 +457,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionTitle('Refresh Lokasi'),
           _buildCard([
             ListTile(
-              leading: const Icon(Icons.autorenew, color: Color(0xFFD4AF37)),
+              leading: Icon(Icons.autorenew, color: context.colors.primaryAccent),
               title: Text(
                 'Mode pembaruan lokasi',
-                style: AppTextStyles.nunito(color: Colors.white),
+                style: AppTextStyles.nunito(color: context.colors.textPrimary),
               ),
               subtitle: Text(
                 _refreshModeLabel(_locationRefreshMode),
                 style: AppTextStyles.nunito(
-                  color: Colors.white54,
+                  color: context.colors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -412,14 +474,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: DropdownButtonFormField<String>(
                 initialValue: _locationRefreshMode,
-                dropdownColor: const Color(0xFF162233),
-                decoration: const InputDecoration(
+                dropdownColor: context.colors.cardBackground,
+                decoration: InputDecoration(
                   border: OutlineInputBorder(),
                   enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white24),
+                    borderSide: BorderSide(color: context.colors.divider),
                   ),
                 ),
-                style: AppTextStyles.nunito(color: Colors.white),
+                style: AppTextStyles.nunito(color: context.colors.textPrimary),
                 items: const [
                   DropdownMenuItem(
                     value: LocationRefreshService.modeManual,
@@ -438,24 +500,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Text('Setiap hari pada jam tertentu'),
                   ),
                 ],
-                onChanged: (value) {
+                onChanged: (value) async {
                   if (value == null) return;
                   setState(() => _locationRefreshMode = value);
+                  await _saveSettings();
                 },
               ),
             ),
             if (_locationRefreshMode == LocationRefreshService.modeDailyTime)
               ListTile(
                 leading:
-                    const Icon(Icons.access_time, color: Color(0xFFD4AF37)),
+                    Icon(Icons.access_time, color: context.colors.primaryAccent),
                 title: Text(
                   'Jam refresh harian',
-                  style: AppTextStyles.nunito(color: Colors.white),
+                  style: AppTextStyles.nunito(color: context.colors.textPrimary),
                 ),
                 subtitle: Text(
                   _dailyRefreshTime.format(context),
                   style: AppTextStyles.nunito(
-                    color: Colors.white54,
+                    color: context.colors.textSecondary,
                     fontSize: 12,
                   ),
                 ),
@@ -466,15 +529,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ListTile(
               leading:
-                  const Icon(Icons.alarm_on, color: Color(0xFFD4AF37)),
+                  Icon(Icons.alarm_on, color: context.colors.primaryAccent),
               title: Text(
                 'Izin exact alarm',
-                style: AppTextStyles.nunito(color: Colors.white),
+                style: AppTextStyles.nunito(color: context.colors.textPrimary),
               ),
               subtitle: Text(
                 _permissionLabel(_exactAlarmStatus),
                 style: AppTextStyles.nunito(
-                  color: Colors.white54,
+                  color: context.colors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -487,15 +550,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.history, color: Color(0xFFD4AF37)),
+              leading: Icon(Icons.history, color: context.colors.primaryAccent),
               title: Text(
                 'Refresh otomatis terakhir',
-                style: AppTextStyles.nunito(color: Colors.white),
+                style: AppTextStyles.nunito(color: context.colors.textPrimary),
               ),
               subtitle: Text(
                 _formatDateTime(_lastAutoRefreshAt),
                 style: AppTextStyles.nunito(
-                  color: Colors.white54,
+                  color: context.colors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -507,7 +570,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Padding(
               padding: const EdgeInsets.all(8),
               child: RadioGroup<String>(
-                onChanged: (v) => setState(() => _calculationMethod = v!),
+                onChanged: (v) async { setState(() => _calculationMethod = v!); await _saveSettings(); },
                 groupValue: _calculationMethod,
                 child: Column(
                   children: _methods.entries.map((e) {
@@ -515,12 +578,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       title: Text(
                         e.value,
                         style: AppTextStyles.nunito(
-                          color: Colors.white,
+                          color: context.colors.textPrimary,
                           fontSize: 14,
                         ),
                       ),
                       value: e.key,
-                      activeColor: const Color(0xFFD4AF37),
+                      activeColor: context.colors.primaryAccent,
                     );
                   }).toList(),
                 ),
@@ -531,16 +594,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionTitle('Lainnya'),
           _buildCard([
             ListTile(
-              leading: const Icon(Icons.location_off, color: Color(0xFFD4AF37)),
+              leading: Icon(Icons.location_off, color: context.colors.primaryAccent),
               title: Text(
                 'Reset Cache Lokasi',
-                style: AppTextStyles.nunito(color: Colors.white),
+                style: AppTextStyles.nunito(color: context.colors.textPrimary),
               ),
               subtitle: Text(
                 'Paksa deteksi ulang GPS',
-                style: AppTextStyles.nunito(color: Colors.white54, fontSize: 12),
+                style: AppTextStyles.nunito(color: context.colors.textSecondary, fontSize: 12),
               ),
-              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              trailing: Icon(Icons.chevron_right, color: context.colors.iconMuted),
               onTap: () async {
                 await LocationService.clearCache();
                 if (!context.mounted) return;
@@ -564,70 +627,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.bug_report, color: Color(0xFFD4AF37)),
+              leading: Icon(Icons.bug_report, color: context.colors.primaryAccent),
               title: Text(
                 'Tes Notifikasi & Alarm',
-                style: AppTextStyles.nunito(color: Colors.white),
+                style: AppTextStyles.nunito(color: context.colors.textPrimary),
               ),
               subtitle: Text(
                 'Kirim notifikasi sekarang dan jadwalkan alarm debug 45 detik.',
                 style: AppTextStyles.nunito(
-                  color: Colors.white54,
+                  color: context.colors.textSecondary,
                   fontSize: 12,
                 ),
               ),
-              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              trailing: Icon(Icons.chevron_right, color: context.colors.iconMuted),
               onTap: _runNotificationSelfTest,
             ),
             ListTile(
-              leading: const Icon(Icons.alarm, color: Color(0xFFD4AF37)),
+              leading: Icon(Icons.alarm, color: context.colors.primaryAccent),
               title: Text(
                 'Tes Alarm Native Android',
-                style: AppTextStyles.nunito(color: Colors.white),
+                style: AppTextStyles.nunito(color: context.colors.textPrimary),
               ),
               subtitle: Text(
                 'Buat alarm gaya Android default, berbunyi 1 menit dari sekarang.',
                 style: AppTextStyles.nunito(
-                  color: Colors.white54,
+                  color: context.colors.textSecondary,
                   fontSize: 12,
                 ),
               ),
-              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              trailing: Icon(Icons.chevron_right, color: context.colors.iconMuted),
               onTap: _runNativeAlarmSelfTest,
             ),
           ]),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () async {
-                await _saveSettings();
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ Pengaturan disimpan'),
-                    backgroundColor: Color(0xFF1A5C3A),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD4AF37),
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                'Simpan Pengaturan',
-                style: AppTextStyles.nunito(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ),
-        ],
+],
       ),
     );
   }
@@ -638,7 +670,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Text(
         title.toUpperCase(),
         style: AppTextStyles.nunito(
-          color: const Color(0xFFD4AF37),
+          color: context.colors.primaryAccent,
           fontSize: 12,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.5,
@@ -650,7 +682,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildCard(List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF162233),
+        color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(children: children),
@@ -665,17 +697,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ValueChanged<bool> onChanged,
   ) {
     return SwitchListTile(
-      secondary: Icon(icon, color: const Color(0xFFD4AF37)),
+      secondary: Icon(icon, color: context.colors.primaryAccent),
       title: Text(
         title,
-        style: AppTextStyles.nunito(color: Colors.white, fontSize: 15),
+        style: AppTextStyles.nunito(color: context.colors.textPrimary, fontSize: 15),
       ),
       subtitle: Text(
         subtitle,
-        style: AppTextStyles.nunito(color: Colors.white54, fontSize: 12),
+        style: AppTextStyles.nunito(color: context.colors.textSecondary, fontSize: 12),
       ),
       value: value,
-      activeTrackColor: const Color(0xFFD4AF37),
+      activeTrackColor: context.colors.primaryAccent,
       onChanged: onChanged,
     );
   }

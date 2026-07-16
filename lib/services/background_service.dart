@@ -50,7 +50,19 @@ Future<void> backgroundServiceOnStart(ServiceInstance service) async {
   Timer.periodic(const Duration(minutes: 30), (_) async {
     final now = DateTime.now();
 
-    if (now.hour == 3 && now.minute < 30) {
+    final prefs = await SharedPreferences.getInstance();
+    final lastRefreshTime = prefs.getInt('last_refresh');
+    final lastRefreshDate = lastRefreshTime != null
+        ? DateTime.fromMillisecondsSinceEpoch(lastRefreshTime)
+        : null;
+
+    final isSameDay = lastRefreshDate != null &&
+        lastRefreshDate.year == now.year &&
+        lastRefreshDate.month == now.month &&
+        lastRefreshDate.day == now.day;
+
+    // Refresh if not yet refreshed today, and it's already past 1:00 AM
+    if (!isSameDay && now.hour >= 1) {
       await BackgroundServiceManager.refreshPrayerSchedule(service);
     }
 

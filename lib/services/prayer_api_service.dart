@@ -7,9 +7,9 @@ import 'package:prayer_alarm_app/models/prayer_time.dart';
 
 class PrayerApiService {
   static const _baseUrl = 'https://api.aladhan.com/v1';
-  static const _cacheKey = 'cached_prayer_times';
-  static const _cacheDateKey = 'cached_prayer_date';
-  static const _cacheMethodKey = 'cached_prayer_method';
+  static const _cacheKey = 'cached_prayer_times_v2';
+  static const _cacheDateKey = 'cached_prayer_date_v2';
+  static const _cacheMethodKey = 'cached_prayer_method_v2';
   static const _calculationMethodKey = 'calculation_method';
   static const defaultCalculationMethod = '20';
 
@@ -80,7 +80,7 @@ class PrayerApiService {
       '?latitude=$lat'
       '&longitude=$lng'
       '&method=$apiMethod'
-      '&school=1', // school=1 → Syafi'i (umum di Indonesia)
+      '&school=0', // school=0 → Syafi'i (umum di Indonesia)
     );
 
     final response = await http.get(url).timeout(const Duration(seconds: 10));

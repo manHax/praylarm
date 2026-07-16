@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:prayer_alarm_app/theme/app_colors.dart';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -202,13 +203,13 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0D1B2A),
+        backgroundColor: context.colors.scaffoldBackground,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF1A3A5C),
+          backgroundColor: context.colors.appBarBackground,
           title: const Text('Planner Khatam'),
         ),
-        body: const Center(
-          child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
+        body: Center(
+          child: CircularProgressIndicator(color: context.colors.primaryAccent),
         ),
       );
     }
@@ -221,20 +222,20 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
     final avgPerSlot = _planner.totalTarget / plan.totalSlots;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1B2A),
+      backgroundColor: context.colors.scaffoldBackground,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A3A5C),
+        backgroundColor: context.colors.appBarBackground,
         title: Text(
           'Planner Khatam',
           style: AppTextStyles.nunito(
-            color: Colors.white,
+            color: context.colors.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: context.colors.textPrimary),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.paddingOf(context).bottom),
         children: [
           _sectionTitle('Target Bacaan'),
           _buildCard(
@@ -350,7 +351,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                   Text(
                     'Slot sholat aktif',
                     style: AppTextStyles.nunito(
-                      color: Colors.white,
+                      color: context.colors.textPrimary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -365,12 +366,12 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                         label: Text(slot),
                         onSelected: (_) => _togglePrayerSlot(slot),
                         selectedColor:
-                            const Color(0xFFD4AF37).withValues(alpha: 0.2),
-                        checkmarkColor: const Color(0xFFD4AF37),
+                            context.colors.primaryAccent.withValues(alpha: 0.2),
+                        checkmarkColor: context.colors.primaryAccent,
                         labelStyle: AppTextStyles.nunito(
                           color: selected
-                              ? const Color(0xFFD4AF37)
-                              : Colors.white,
+                              ? context.colors.primaryAccent
+                              : context.colors.textPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       );
@@ -380,7 +381,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                   Text(
                     'Pembagian slot akan mengikuti sholat yang dipilih.',
                     style: AppTextStyles.nunito(
-                      color: Colors.white54,
+                      color: context.colors.textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -389,7 +390,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   value: _planner.spreadRemainder,
-                  activeTrackColor: const Color(0xFFD4AF37),
+                  activeTrackColor: context.colors.primaryAccent,
                   onChanged: (value) {
                     _updatePlanner(
                       _planner.copyWith(
@@ -402,7 +403,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                   title: Text(
                     'Sebar sisa ke slot awal',
                     style: AppTextStyles.nunito(
-                      color: Colors.white,
+                      color: context.colors.textPrimary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -411,7 +412,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                         ? 'Slot awal akan mendapat tambahan 1 ${_planner.unitLabel} jika ada sisa.'
                         : 'Semua slot dibulatkan ke atas, slot akhir bisa lebih pendek.',
                     style: AppTextStyles.nunito(
-                      color: Colors.white54,
+                      color: context.colors.textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -440,12 +441,12 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                 const SizedBox(height: 12),
                 Text(
                   'Rata-rata ${avgPerDay.toStringAsFixed(2)} ${_planner.unitLabel} per hari',
-                  style: AppTextStyles.nunito(color: Colors.white),
+                  style: AppTextStyles.nunito(color: context.colors.textPrimary),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Rata-rata ${avgPerSlot.toStringAsFixed(2)} ${_planner.unitLabel} per slot',
-                  style: AppTextStyles.nunito(color: Colors.white70),
+                  style: AppTextStyles.nunito(color: context.colors.textSecondary),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -453,7 +454,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                       ? 'Base ${plan.basePerSlot} ${_planner.unitLabel}, +1 ke ${plan.distributedRemainder} slot awal.'
                       : 'Base ${plan.basePerSlot} ${_planner.unitLabel}, slot akhir bisa lebih pendek.',
                   style: AppTextStyles.nunito(
-                    color: Colors.white54,
+                    color: context.colors.textSecondary,
                     fontSize: 12,
                   ),
                 ),
@@ -475,7 +476,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                           Text(
                             '$doneCount / $totalCount selesai',
                             style: AppTextStyles.nunito(
-                              color: Colors.white,
+                              color: context.colors.textPrimary,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -483,8 +484,8 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                           LinearProgressIndicator(
                             value: progress,
                             minHeight: 8,
-                            backgroundColor: Colors.white12,
-                            color: const Color(0xFFD4AF37),
+                            backgroundColor: context.colors.divider,
+                            color: context.colors.primaryAccent,
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ],
@@ -512,7 +513,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                 Text(
                   'Tips',
                   style: AppTextStyles.nunito(
-                    color: Colors.white,
+                    color: context.colors.textPrimary,
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
                   ),
@@ -521,7 +522,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                 Text(
                   'Untuk Ramadan, gunakan 29 atau 30 hari dengan mode per sholat agar target lebih ringan setelah tiap waktu sholat.',
                   style: AppTextStyles.nunito(
-                    color: Colors.white70,
+                    color: context.colors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -539,25 +540,25 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF162233),
+        color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: dayDone
-              ? const Color(0xFFD4AF37).withValues(alpha: 0.5)
-              : Colors.white10,
+              ? context.colors.primaryAccent.withValues(alpha: 0.5)
+              : context.colors.divider,
         ),
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           initiallyExpanded: day.day <= 2,
-          iconColor: Colors.white70,
-          collapsedIconColor: Colors.white38,
+          iconColor: context.colors.textSecondary,
+          collapsedIconColor: context.colors.iconMuted,
           title: Row(
             children: [
               Checkbox(
                 value: dayDone,
-                activeColor: const Color(0xFFD4AF37),
+                activeColor: context.colors.primaryAccent,
                 onChanged: (_) {
                   if (_planner.mode == KhatamMode.perDay) {
                     _toggleDay(day);
@@ -573,7 +574,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                     Text(
                       'Hari ${day.day}',
                       style: AppTextStyles.nunito(
-                        color: Colors.white,
+                        color: context.colors.textPrimary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -581,7 +582,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                     Text(
                       '${_planner.formatWrappedRange(day.start, day.end)} • ${day.totalThisDay} ${_planner.unitLabel}',
                       style: AppTextStyles.nunito(
-                        color: Colors.white54,
+                        color: context.colors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -613,14 +614,14 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: checked
-                                  ? const Color(0xFFD4AF37)
+                                  ? context.colors.primaryAccent
                                       .withValues(alpha: 0.12)
-                                  : const Color(0xFF0F1A28),
+                                  : context.colors.secondaryCardBackground,
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                 color: checked
-                                    ? const Color(0xFFD4AF37)
-                                    : Colors.white10,
+                                    ? context.colors.primaryAccent
+                                    : context.colors.divider,
                               ),
                             ),
                             child: Column(
@@ -632,14 +633,14 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                                       child: Text(
                                         label,
                                         style: AppTextStyles.nunito(
-                                          color: Colors.white,
+                                          color: context.colors.textPrimary,
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
                                     ),
                                     Checkbox(
                                       value: checked,
-                                      activeColor: const Color(0xFFD4AF37),
+                                      activeColor: context.colors.primaryAccent,
                                       onChanged: (_) => _toggleSlot(day, index),
                                     ),
                                   ],
@@ -650,7 +651,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                                     slot.end,
                                   ),
                                   style: AppTextStyles.nunito(
-                                    color: const Color(0xFFD4AF37),
+                                    color: context.colors.primaryAccent,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -658,7 +659,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
                                 Text(
                                   '${slot.size} ${_planner.unitLabel}',
                                   style: AppTextStyles.nunito(
-                                    color: Colors.white54,
+                                    color: context.colors.textSecondary,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -687,9 +688,9 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFF0F1A28),
+          color: context.colors.secondaryCardBackground,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white10),
+          border: Border.all(color: context.colors.divider),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -697,7 +698,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
             Text(
               label,
               style: AppTextStyles.nunito(
-                color: Colors.white54,
+                color: context.colors.textSecondary,
                 fontSize: 12,
               ),
             ),
@@ -705,7 +706,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
             Text(
               DateFormat('dd MMM yyyy', 'id_ID').format(value),
               style: AppTextStyles.nunito(
-                color: Colors.white,
+                color: context.colors.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -726,7 +727,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
         Text(
           label,
           style: AppTextStyles.nunito(
-            color: Colors.white,
+            color: context.colors.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -734,7 +735,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
         TextField(
           controller: controller,
           keyboardType: TextInputType.number,
-          style: AppTextStyles.nunito(color: Colors.white),
+          style: AppTextStyles.nunito(color: context.colors.textPrimary),
           onSubmitted: (_) {
             _saveNumbers();
           },
@@ -743,12 +744,12 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
           },
           decoration: InputDecoration(
             filled: true,
-            fillColor: const Color(0xFF0F1A28),
+            fillColor: context.colors.secondaryCardBackground,
             hintText: label,
-            hintStyle: AppTextStyles.nunito(color: Colors.white24),
+            hintStyle: AppTextStyles.nunito(color: context.colors.divider),
             helperText: helper,
             helperStyle: AppTextStyles.nunito(
-              color: Colors.white38,
+              color: context.colors.iconMuted,
               fontSize: 11,
             ),
             border: OutlineInputBorder(
@@ -756,7 +757,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.white10),
+              borderSide: BorderSide(color: context.colors.divider),
             ),
           ),
         ),
@@ -768,13 +769,13 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFD4AF37).withValues(alpha: 0.12),
+        color: context.colors.primaryAccent.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
         style: AppTextStyles.nunito(
-          color: const Color(0xFFD4AF37),
+          color: context.colors.primaryAccent,
           fontWeight: FontWeight.w700,
           fontSize: 12,
         ),
@@ -786,7 +787,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF162233),
+        color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
       ),
       child: child,
@@ -799,7 +800,7 @@ class _KhatamPlannerScreenState extends State<KhatamPlannerScreen> {
       child: Text(
         title.toUpperCase(),
         style: AppTextStyles.nunito(
-          color: const Color(0xFFD4AF37),
+          color: context.colors.primaryAccent,
           fontSize: 12,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.5,

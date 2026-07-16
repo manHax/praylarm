@@ -1,5 +1,8 @@
 // lib/ui/home_screen.dart
 
+import 'dart:async';
+import 'package:prayer_alarm_app/theme/app_colors.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
@@ -71,13 +74,13 @@ class _HomeScreenState extends State<HomeScreen> {
         lng: location.lng,
       );
 
-      await AlarmService.scheduleAllAlarms(times);
-
       setState(() {
         _prayerTimes = times;
         _activeLocation = location;
         _isLoading = false;
       });
+
+      unawaited(_scheduleAlarmsInBackground(times));
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -86,10 +89,26 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _scheduleAlarmsInBackground(PrayerTimes times) async {
+    try {
+      await AlarmService.scheduleAllAlarms(times);
+    } catch (error, stackTrace) {
+      debugPrint('Background alarm scheduling failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (!_isLoading && _error == null && _prayerTimes == null) {
+      return Scaffold(
+        backgroundColor: context.colors.scaffoldBackground,
+        body: SafeArea(child: _buildLoading()),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1B2A),
+      backgroundColor: context.colors.scaffoldBackground,
       body: SafeArea(
         child: _isLoading
             ? _buildLoading()
@@ -105,11 +124,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(
+          SizedBox(
             width: 60,
             height: 60,
             child: CircularProgressIndicator(
-              color: Color(0xFFD4AF37),
+              color: context.colors.primaryAccent,
               strokeWidth: 2,
             ),
           ),
@@ -117,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             _locationStatus,
             style: AppTextStyles.nunito(
-              color: Colors.white70,
+              color: context.colors.textSecondary,
               fontSize: 16,
             ),
           ),
@@ -138,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               'Gagal memuat jadwal',
               style: AppTextStyles.nunito(
-                color: Colors.white,
+                color: context.colors.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -146,7 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 8),
             Text(
               _error ?? '',
-              style: AppTextStyles.nunito(color: Colors.white60, fontSize: 14),
+              style: AppTextStyles.nunito(color: context.colors.textSecondary, fontSize: 14),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -155,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.refresh),
               label: const Text('Coba Lagi'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD4AF37),
+                backgroundColor: context.colors.primaryAccent,
                 foregroundColor: Colors.black,
               ),
             ),
@@ -214,11 +233,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1A3A5C), Color(0xFF0D1B2A)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [context.colors.appBarBackground, context.colors.scaffoldBackground],
         ),
       ),
       child: Column(
@@ -228,97 +247,103 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '🕌 Jadwal Sholat',
-                    style: AppTextStyles.nunito(
-                      color: const Color(0xFFD4AF37),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  Text(
-                    dateStr,
-                    style: AppTextStyles.nunito(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        color: Color(0xFFD4AF37),
-                        size: 14,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '🕌 Jadwal Sholat',
+                      style: AppTextStyles.nunito(
+                        color: context.colors.primaryAccent,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.5,
                       ),
-                      const SizedBox(width: 4),
-                      Flexible(
+                    ),
+                    Text(
+                      dateStr,
+                      style: AppTextStyles.nunito(
+                        color: context.colors.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.location_on_outlined,
+                          color: context.colors.primaryAccent,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            locationTitle,
+                            style: AppTextStyles.nunito(
+                              color: context.colors.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (locationSubtitle != null &&
+                        locationSubtitle.trim().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          locationTitle,
+                          locationSubtitle,
                           style: AppTextStyles.nunito(
-                            color: Colors.white70,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
+                            color: context.colors.iconMuted,
+                            fontSize: 11,
                           ),
                           overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ),
-                    ],
-                  ),
-                  if (locationSubtitle != null &&
-                      locationSubtitle.trim().isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        locationSubtitle,
-                        style: AppTextStyles.nunito(
-                          color: Colors.white38,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                  if (_activeLocation != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Wrap(
-                        spacing: 10,
-                        runSpacing: 4,
-                        children: [
-                          Text(
-                            'Koordinat ${pt.coordinateLabel}',
-                            style: AppTextStyles.nunito(
-                              color: Colors.white38,
-                              fontSize: 11,
+                    if (_activeLocation != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Wrap(
+                          spacing: 10,
+                          runSpacing: 4,
+                          children: [
+                            Text(
+                              'Koordinat ${pt.coordinateLabel}',
+                              style: AppTextStyles.nunito(
+                                color: context.colors.iconMuted,
+                                fontSize: 11,
+                              ),
                             ),
-                          ),
-                          Text(
-                            'Elevasi ${_activeLocation!.altitude.toStringAsFixed(0)} m',
-                            style: AppTextStyles.nunito(
-                              color: Colors.white38,
-                              fontSize: 11,
+                            Text(
+                              'Elevasi ${_activeLocation!.altitude.toStringAsFixed(0)} m',
+                              style: AppTextStyles.nunito(
+                                color: context.colors.iconMuted,
+                                fontSize: 11,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (_activeLocation == null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        'Koordinat ${pt.coordinateLabel}',
-                        style: AppTextStyles.nunito(
-                          color: Colors.white38,
-                          fontSize: 11,
+                          ],
                         ),
                       ),
-                    ),
-                ],
+                    if (_activeLocation == null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          'Koordinat ${pt.coordinateLabel}',
+                          style: AppTextStyles.nunito(
+                            color: context.colors.iconMuted,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 12),
               Row(
                 children: [
                   IconButton(
@@ -330,12 +355,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       );
                     },
-                    icon: const Icon(Icons.menu_book, color: Colors.white70),
+                    icon: Icon(Icons.menu_book, color: context.colors.textSecondary),
                     tooltip: 'Planner khatam',
                   ),
                   IconButton(
                     onPressed: _refreshPrayerTimes,
-                    icon: const Icon(Icons.refresh, color: Colors.white70),
+                    icon: Icon(Icons.refresh, color: context.colors.textSecondary),
                     tooltip: 'Refresh',
                   ),
                   IconButton(
@@ -349,7 +374,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       await _loadSettings();
                       await _loadPrayerTimes();
                     },
-                    icon: const Icon(Icons.settings, color: Colors.white70),
+                    icon: Icon(Icons.settings, color: context.colors.textSecondary),
                   ),
                 ],
               ),
@@ -362,13 +387,13 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFD4AF37), Color(0xFFB8860B)],
+                gradient: LinearGradient(
+                  colors: [context.colors.primaryAccent, context.colors.primaryAccentDark],
                 ),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+                    color: context.colors.primaryAccent.withValues(alpha: 0.3),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -448,7 +473,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             'Waktu Terkait',
             style: AppTextStyles.nunito(
-              color: const Color(0xFFD4AF37),
+              color: context.colors.primaryAccent,
               fontSize: 13,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.1,
@@ -494,11 +519,11 @@ class _PrayerCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isNext
-            ? const Color(0xFF1A3A5C)
-            : const Color(0xFF162233),
+            ? context.colors.appBarBackground
+            : context.colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
         border: isNext
-            ? Border.all(color: const Color(0xFFD4AF37), width: 1.5)
+            ? Border.all(color: context.colors.primaryAccent, width: 1.5)
             : null,
       ),
       child: Row(
@@ -508,8 +533,8 @@ class _PrayerCard extends StatelessWidget {
             height: 48,
             decoration: BoxDecoration(
               color: isNext
-                  ? const Color(0xFFD4AF37).withValues(alpha: 0.15)
-                  : Colors.white.withValues(alpha: 0.05),
+                  ? context.colors.primaryAccent.withValues(alpha: 0.15)
+                  : context.colors.textPrimary.withValues(alpha: 0.05),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -530,8 +555,8 @@ class _PrayerCard extends StatelessWidget {
                       prayer.name,
                       style: AppTextStyles.nunito(
                         color: isNext
-                            ? const Color(0xFFD4AF37)
-                            : Colors.white,
+                            ? context.colors.primaryAccent
+                            : context.colors.textPrimary,
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
                       ),
@@ -542,7 +567,7 @@ class _PrayerCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD4AF37),
+                          color: context.colors.primaryAccent,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -561,7 +586,7 @@ class _PrayerCard extends StatelessWidget {
                 Text(
                   'Berakhir: ${prayer.end}',
                   style: AppTextStyles.nunito(
-                    color: Colors.white38,
+                    color: context.colors.iconMuted,
                     fontSize: 12,
                   ),
                 ),
@@ -574,7 +599,7 @@ class _PrayerCard extends StatelessWidget {
               Text(
                 prayer.start,
                 style: AppTextStyles.nunito(
-                  color: isNext ? const Color(0xFFD4AF37) : Colors.white,
+                  color: isNext ? context.colors.primaryAccent : context.colors.textPrimary,
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                 ),
@@ -582,7 +607,7 @@ class _PrayerCard extends StatelessWidget {
               Text(
                 notificationsEnabled ? '⏰ -$minutesBefore mnt' : '🔕 Off',
                 style: AppTextStyles.nunito(
-                  color: Colors.white30,
+                  color: context.colors.iconMuted,
                   fontSize: 11,
                 ),
               ),
@@ -610,7 +635,7 @@ class _RelatedTimeCard extends StatelessWidget {
       width: width,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF162233),
+        color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -624,7 +649,7 @@ class _RelatedTimeCard extends StatelessWidget {
           Text(
             entry.name,
             style: AppTextStyles.nunito(
-              color: Colors.white,
+              color: context.colors.textPrimary,
               fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
@@ -633,7 +658,7 @@ class _RelatedTimeCard extends StatelessWidget {
           Text(
             entry.time,
             style: AppTextStyles.nunito(
-              color: const Color(0xFFD4AF37),
+              color: context.colors.primaryAccent,
               fontSize: 22,
               fontWeight: FontWeight.w800,
             ),
@@ -642,7 +667,7 @@ class _RelatedTimeCard extends StatelessWidget {
           Text(
             entry.description,
             style: AppTextStyles.nunito(
-              color: Colors.white38,
+              color: context.colors.iconMuted,
               fontSize: 11,
             ),
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prayer_alarm_app/models/prayer_time.dart';
 import 'package:prayer_alarm_app/services/alarm_service.dart';
+import 'package:prayer_alarm_app/models/alarm_mode.dart';
 
 void main() {
   group('AlarmService.buildScheduleRequests', () {
@@ -18,11 +19,25 @@ void main() {
       timezone: 'Asia/Jakarta',
     );
 
+    final testModes = {
+      'Fajr': AlarmMode.alarm,
+      'Dhuhr': AlarmMode.alarm,
+      'Asr': AlarmMode.alarm,
+      'Maghrib': AlarmMode.alarm,
+      'Isha': AlarmMode.alarm,
+      'Imsak': AlarmMode.off,
+      'Syuruq': AlarmMode.off,
+      'Dhuha': AlarmMode.off,
+      'Tengah Malam': AlarmMode.off,
+      'Tahajud Utama': AlarmMode.off,
+    };
+
     test('creates all future start/end reminders before fajr', () {
       final now = DateTime(2026, 7, 7, 3, 0);
 
       final requests = AlarmService.buildScheduleRequests(
         prayerTimes: prayerTimes,
+        modes: testModes,
         now: now,
         minutesBefore: 10,
       );
@@ -44,6 +59,7 @@ void main() {
 
       final requests = AlarmService.buildScheduleRequests(
         prayerTimes: prayerTimes,
+        modes: testModes,
         now: now,
         minutesBefore: 10,
       );

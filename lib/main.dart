@@ -1,5 +1,8 @@
 // lib/main.dart
 
+import 'dart:async';
+import 'dart:io';
+import 'package:prayer_alarm_app/services/theme_service.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -31,56 +34,76 @@ void main() async {
   // Init locale Indonesia
   await initializeDateFormatting('id_ID', null);
 
-  // Init notification service
-  await NotificationService.initialize();
-
-  // Request permission notifikasi sebelum foreground service dinyalakan
-  await NotificationService.requestPermission();
-
-  // Init alarm service (set timezone lokal)
-  await AlarmService.initialize();
-
-  if (_alarmSelfTestOnStartup) {
-    final scheduledAt = await AlarmService.runNotificationSelfTest();
-    final pendingCount = await NotificationService.pendingNotificationCount();
-    debugPrint(
-      'ALARM_SELF_TEST scheduledAt=$scheduledAt pendingCount=$pendingCount',
-    );
-  }
-
-  if (_nativeAlarmSelfTestOnStartup) {
-    final scheduledAt = await AlarmService.runNativeAlarmSelfTest();
-    debugPrint('NATIVE_ALARM_SELF_TEST scheduledAt=$scheduledAt');
-  }
-
-  // Init scheduler refresh lokasi otomatis
-  await LocationRefreshService.initialize();
-
-  // Foreground background service dimatikan di Android karena crash pada
-  // beberapa perangkat OEM saat startForeground. Alarm inti tetap berjalan.
-  if (!Platform.isAndroid) {
-    await BackgroundServiceManager.initialize();
-  }
-
   runApp(const PrayerAlarmApp());
+  unawaited(_bootstrapAppServices());
 }
+
+Future<void> _bootstrapAppServices() async {
+  try {
+    await NotificationService.initialize();
+    await AlarmService.initialize();
+
+    // Jangan blok first paint dengan dialog permission.
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    await NotificationService.requestPermission();
+
+    if (_alarmSelfTestOnStartup) {
+      final scheduledAt = await AlarmService.runNotificationSelfTest();
+      final pendingCount = await NotificationService.pendingNotificationCount();
+      debugPrint(
+        'ALARM_SELF_TEST scheduledAt=$scheduledAt pendingCount=$pendingCount',
+      );
+    }
+
+    if (_nativeAlarmSelfTestOnStartup) {
+      final scheduledAt = await AlarmService.runNativeAlarmSelfTest();
+      debugPrint('NATIVE_ALARM_SELF_TEST scheduledAt=$scheduledAt');
+    }
+
+    await LocationRefreshService.initialize();
+
+    // Foreground background service dimatikan di Android karena crash pada
+    // beberapa perangkat OEM saat startForeground. Alarm inti tetap berjalan.
+    if (!Platform.isAndroid) {
+      await BackgroundServiceManager.initialize();
+    }
+  } catch (error, stackTrace) {
+    debugPrint('App bootstrap failed: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
+}
+
+final themeService = ThemeService();
 
 class PrayerAlarmApp extends StatelessWidget {
   const PrayerAlarmApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Prayer Alarm',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFD4AF37),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      home: const HomeScreen(),
+    return ListenableBuilder(
+      listenable: themeService,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'Prayer Alarm',
+          debugShowCheckedModeBanner: false,
+          themeMode: themeService.themeMode,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFFD4AF37),
+              brightness: Brightness.light,
+            ),
+            useMaterial3: true,
+          ),
+          darkTheme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFFD4AF37),
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+          ),
+          home: const HomeScreen(),
+        );
+      },
     );
   }
 }
