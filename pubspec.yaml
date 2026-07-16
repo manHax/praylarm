@@ -1,7 +1,7 @@
 name: prayer_alarm_app
 description: Aplikasi alarm jadwal sholat dengan deteksi lokasi otomatis
 publish_to: 'none'
-version: 1.1.0+2
+version: 1.1.0+3
 
 environment:
   sdk: ^3.11.4
@@ -49,6 +49,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
@@ -57,3 +58,7 @@ flutter:
     - assets/audio/
     - assets/images/
     - assets/animations/
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon.jpg"
