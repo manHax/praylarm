@@ -29,7 +29,7 @@ class PinnedNotificationService {
     }
 
     final title = '📍 $locationStatus';
-    final body = 'Fajr: ${_format(pt.fajr)} | Dhuhr: ${_format(pt.dhuhr)} | Asr: ${_format(pt.asr)}\nMaghrib: ${_format(pt.maghrib)} | Isha: ${_format(pt.isha)}';
+    final body = '🌙 ${_format(pt.fajr)} | ☀️ ${_format(pt.dhuhr)} | 🌤️ ${_format(pt.asr)}\n🌅 ${_format(pt.maghrib)} | 🌃 ${_format(pt.isha)}';
 
     await NotificationService.showPinnedNotification(
       title: title,
