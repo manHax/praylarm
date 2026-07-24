@@ -35,6 +35,9 @@ class _AlarmPreferencesScreenState extends State<AlarmPreferencesScreen> {
   ];
 
   Map<String, AlarmMode> _modes = {};
+  Map<String, int> _minutesMap = {};
+  Map<String, AlarmMode> _modeBeforeMap = {};
+  Map<String, AlarmMode> _modeAfterMap = {};
   bool _isLoading = true;
 
   @override
@@ -49,8 +52,14 @@ class _AlarmPreferencesScreenState extends State<AlarmPreferencesScreen> {
       ..._relatedTimes.map((e) => e['name']!),
     ];
     final modes = await AlarmPreferenceService.getAllModes(allNames);
+    final minutesMap = await AlarmPreferenceService.getAllMinutesBefore(allNames);
+    final modeBeforeMap = await AlarmPreferenceService.getAllModeBefore(allNames);
+    final modeAfterMap = await AlarmPreferenceService.getAllModeAfter(allNames);
     setState(() {
       _modes = modes;
+      _minutesMap = minutesMap;
+      _modeBeforeMap = modeBeforeMap;
+      _modeAfterMap = modeAfterMap;
       _isLoading = false;
     });
   }
@@ -60,8 +69,34 @@ class _AlarmPreferencesScreenState extends State<AlarmPreferencesScreen> {
       _modes[name] = mode;
     });
     await AlarmPreferenceService.setMode(name, mode);
-    
-    // Reschedule alarms after modifying
+    await _rescheduleAlarms();
+  }
+
+  Future<void> _updateMinutes(String name, int minutes) async {
+    setState(() {
+      _minutesMap[name] = minutes;
+    });
+    await AlarmPreferenceService.setMinutesBefore(name, minutes);
+    await _rescheduleAlarms();
+  }
+
+  Future<void> _updateModeBefore(String name, AlarmMode val) async {
+    setState(() {
+      _modeBeforeMap[name] = val;
+    });
+    await AlarmPreferenceService.setModeBefore(name, val);
+    await _rescheduleAlarms();
+  }
+
+  Future<void> _updateModeAfter(String name, AlarmMode val) async {
+    setState(() {
+      _modeAfterMap[name] = val;
+    });
+    await AlarmPreferenceService.setModeAfter(name, val);
+    await _rescheduleAlarms();
+  }
+
+  Future<void> _rescheduleAlarms() async {
     final location = await LocationService.getLocationSilently();
     if (location != null) {
       try {
@@ -142,41 +177,138 @@ class _AlarmPreferencesScreenState extends State<AlarmPreferencesScreen> {
   Widget _buildRow(Map<String, String> item) {
     final name = item['name']!;
     final mode = _modes[name] ?? AlarmMode.off;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          Text(item['icon']!, style: const TextStyle(fontSize: 20)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              item['label']!,
-              style: AppTextStyles.nunito(color: context.colors.textPrimary, fontSize: 16),
+    final minutes = _minutesMap[name] ?? 10;
+    final modeBefore = _modeBeforeMap[name] ?? mode;
+    final modeAfter = _modeAfterMap[name] ?? mode;
+    
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Text(item['icon']!, style: const TextStyle(fontSize: 20)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  item['label']!,
+                  style: AppTextStyles.nunito(color: context.colors.textPrimary, fontSize: 16),
+                ),
+              ),
+              DropdownButton<AlarmMode>(
+                value: mode,
+                dropdownColor: context.colors.appBarBackground,
+                icon: Icon(Icons.arrow_drop_down, color: context.colors.textSecondary),
+                underline: const SizedBox(),
+                items: AlarmMode.values.map((m) {
+                  return DropdownMenuItem<AlarmMode>(
+                    value: m,
+                    child: Text(
+                      m.label,
+                      style: AppTextStyles.nunito(
+                        color: m == AlarmMode.off ? context.colors.textSecondary : context.colors.textPrimary,
+                        fontSize: 14,
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) _updateMode(name, val);
+                },
+              ),
+            ],
+          ),
+        ),
+        if (mode != AlarmMode.off)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Persiapan (Sebelum Masuk)', style: AppTextStyles.nunito(color: context.colors.textSecondary, fontSize: 13)),
+                    DropdownButton<AlarmMode>(
+                      value: modeBefore,
+                      dropdownColor: context.colors.appBarBackground,
+                      icon: Icon(Icons.arrow_drop_down, color: context.colors.textSecondary),
+                      underline: const SizedBox(),
+                      items: AlarmMode.values.map((m) {
+                        return DropdownMenuItem<AlarmMode>(
+                          value: m,
+                          child: Text(
+                            m.label,
+                            style: AppTextStyles.nunito(
+                              color: m == AlarmMode.off ? context.colors.textSecondary : context.colors.textPrimary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) _updateModeBefore(name, val);
+                      },
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Peringatan (Hampir Habis)', style: AppTextStyles.nunito(color: context.colors.textSecondary, fontSize: 13)),
+                    DropdownButton<AlarmMode>(
+                      value: modeAfter,
+                      dropdownColor: context.colors.appBarBackground,
+                      icon: Icon(Icons.arrow_drop_down, color: context.colors.textSecondary),
+                      underline: const SizedBox(),
+                      items: AlarmMode.values.map((m) {
+                        return DropdownMenuItem<AlarmMode>(
+                          value: m,
+                          child: Text(
+                            m.label,
+                            style: AppTextStyles.nunito(
+                              color: m == AlarmMode.off ? context.colors.textSecondary : context.colors.textPrimary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) _updateModeAfter(name, val);
+                      },
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Slider(
+                        value: minutes.toDouble(),
+                        min: 1,
+                        max: 60,
+                        divisions: 59,
+                        activeColor: context.colors.primaryAccent,
+                        inactiveColor: context.colors.divider,
+                        label: '$minutes menit',
+                        onChanged: (val) {
+                          setState(() {
+                            _minutesMap[name] = val.round();
+                          });
+                        },
+                        onChangeEnd: (val) {
+                          _updateMinutes(name, val.round());
+                        },
+                      ),
+                    ),
+                    Text(
+                      '$minutes mnt',
+                      style: AppTextStyles.nunito(color: context.colors.textSecondary, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          DropdownButton<AlarmMode>(
-            value: mode,
-            dropdownColor: context.colors.appBarBackground,
-            icon: Icon(Icons.arrow_drop_down, color: context.colors.textSecondary),
-            underline: const SizedBox(),
-            items: AlarmMode.values.map((m) {
-              return DropdownMenuItem<AlarmMode>(
-                value: m,
-                child: Text(
-                  m.label,
-                  style: AppTextStyles.nunito(
-                    color: m == AlarmMode.off ? context.colors.textSecondary : context.colors.textPrimary,
-                    fontSize: 14,
-                  ),
-                ),
-              );
-            }).toList(),
-            onChanged: (val) {
-              if (val != null) _updateMode(name, val);
-            },
-          ),
-        ],
-      ),
+      ],
     );
   }
 }

@@ -28,7 +28,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _pinnedNotificationEnabled = false;
   bool _vibrationEnabled = true;
   bool _notificationsEnabled = true;
-  int _minutesBefore = 10;
   String _calculationMethod = PrayerApiService.defaultCalculationMethod;
   String _alarmSoundMode = AlarmSoundService.defaultMode;
   String? _alarmSoundUri;
@@ -71,7 +70,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _pinnedNotificationEnabled = prefs.getBool('pinned_notification_enabled') ?? false;
       _vibrationEnabled = prefs.getBool('vibration_enabled') ?? true;
       _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
-      _minutesBefore = prefs.getInt('minutes_before') ?? 10;
       _calculationMethod = PrayerApiService.normalizeCalculationMethod(
         prefs.getString('calculation_method'),
       );
@@ -99,7 +97,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await PinnedNotificationService.setEnabled(_pinnedNotificationEnabled);
     await prefs.setBool('vibration_enabled', _vibrationEnabled);
     await prefs.setBool('notifications_enabled', _notificationsEnabled);
-    await prefs.setInt('minutes_before', _minutesBefore);
     await prefs.setString('calculation_method', _calculationMethod);
     await AlarmSoundService.saveSelection(
       AlarmSoundSelection(
@@ -377,39 +374,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ]),
-          const SizedBox(height: 16),
-          _sectionTitle('Waktu Pengingat'),
-          _buildCard([
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Ingatkan $_minutesBefore menit sebelum masuk dan sebelum habis',
-                    style: AppTextStyles.nunito(
-                      color: context.colors.textPrimary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Slider(
-                    value: _minutesBefore.toDouble(),
-                    min: 5,
-                    max: 30,
-                    divisions: 5,
-                    activeColor: context.colors.primaryAccent,
-                    inactiveColor: context.colors.divider,
-                    label: '$_minutesBefore menit',
-                    onChanged: (v) =>
-                        setState(() => _minutesBefore = v.round()),
-                    onChangeEnd: (v) async => await _saveSettings(),
-                  ),
-                ],
-              ),
-            ),
-          ]),
-          const SizedBox(height: 16),
+
           _sectionTitle('Lokasi'),
           _buildCard([
             ListTile(

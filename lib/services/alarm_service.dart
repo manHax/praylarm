@@ -1,9 +1,10 @@
 // lib/services/alarm_service.dart
 //
-// LOGIKA ALARM:
-// Setiap sholat memiliki 2 alarm:
-//   [1] 10 menit SEBELUM waktu masuk sholat  → "Segera sholat X"
-//   [2] 10 menit SEBELUM waktu sholat HABIS  → "Waktu X hampir habis"
+// LOGIKA ALARM BARU:
+// - Notifikasi Push: Tepat pada saat waktu sholat tiba ("Waktu X Telah Tiba")
+// - Alarm Native:
+//   [1] X menit SEBELUM waktu masuk sholat  → "Persiapan X"
+//   [2] X menit SEBELUM waktu sholat HABIS  → "X Hampir Habis"
 
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
@@ -50,7 +51,6 @@ class _AlarmTargetInfo {
 
 class AlarmService {
   static const _defaultMinutesBefore = 10;
-  static const _minutesBeforeKey = 'minutes_before';
   static const _notificationsEnabledKey = 'notifications_enabled';
   static const _debugInstantNotificationId = 900001;
   static const _debugScheduledNotificationId = 900002;
@@ -90,13 +90,14 @@ class AlarmService {
     final notificationsEnabled = await _notificationsEnabled();
     if (!notificationsEnabled) return;
 
-    final minutesBefore = await _reminderMinutesBefore();
-    
     final allNames = [
       ...prayerTimes.allPrayers.map((p) => p.name),
       ...prayerTimes.relatedTimes.map((r) => r.name),
     ];
     final modes = await AlarmPreferenceService.getAllModes(allNames);
+    final minutesMap = await AlarmPreferenceService.getAllMinutesBefore(allNames);
+    final modeBeforeMap = await AlarmPreferenceService.getAllModeBefore(allNames);
+    final modeAfterMap = await AlarmPreferenceService.getAllModeAfter(allNames);
 
     final now = DateTime.now();
     final tomorrow = now.add(const Duration(days: 1));
@@ -114,14 +115,18 @@ class AlarmService {
     final requests = buildScheduleRequests(
       prayerTimes: prayerTimes,
       modes: modes,
+      minutesMap: minutesMap,
+      modeBeforeMap: modeBeforeMap,
+      modeAfterMap: modeAfterMap,
       now: now,
-      minutesBefore: minutesBefore,
     );
     final tomorrowRequests = buildScheduleRequests(
       prayerTimes: tomorrowPrayerTimes,
       modes: modes,
+      minutesMap: minutesMap,
+      modeBeforeMap: modeBeforeMap,
+      modeAfterMap: modeAfterMap,
       now: now,
-      minutesBefore: minutesBefore,
       isTomorrow: true,
     );
 
@@ -138,11 +143,17 @@ class AlarmService {
     final nativeAlarms = buildNativePrayerAlarms(
       prayerTimes: prayerTimes,
       modes: modes,
+      minutesMap: minutesMap,
+      modeBeforeMap: modeBeforeMap,
+      modeAfterMap: modeAfterMap,
       now: now,
     );
     final tomorrowNativeAlarms = buildNativePrayerAlarms(
       prayerTimes: tomorrowPrayerTimes,
       modes: modes,
+      minutesMap: minutesMap,
+      modeBeforeMap: modeBeforeMap,
+      modeAfterMap: modeAfterMap,
       now: now,
       isTomorrow: true,
     );
@@ -152,8 +163,10 @@ class AlarmService {
   static List<ScheduledAlarmRequest> buildScheduleRequests({
     required PrayerTimes prayerTimes,
     required Map<String, AlarmMode> modes,
+    required Map<String, int> minutesMap,
+    required Map<String, AlarmMode> modeBeforeMap,
+    required Map<String, AlarmMode> modeAfterMap,
     required DateTime now,
-    required int minutesBefore,
     bool isTomorrow = false,
   }) {
     final requests = <ScheduledAlarmRequest>[];
@@ -181,29 +194,47 @@ class AlarmService {
       final mode = modes[target.name] ?? AlarmMode.off;
       if (mode == AlarmMode.off) continue;
 
-      // AlarmMode.push atau AlarmMode.alarm tetap mendapatkan notifikasi push pengingat
+      final minutesBefore = minutesMap[target.name] ?? 10;
+      final modeBefore = modeBeforeMap[target.name] ?? mode;
+      final modeAfter = modeAfterMap[target.name] ?? mode;
+
+      // AlarmMode.push atau AlarmMode.alarm tetap mendapatkan notifikasi push pada saat waktu tiba
       final startTime = _parseTime(target.start, baseDate: baseDate);
 
-      final beforeStart = startTime.subtract(Duration(minutes: minutesBefore));
-      if (beforeStart.isAfter(now)) {
+      if (startTime.isAfter(now)) {
         requests.add(
           ScheduledAlarmRequest(
             id: _getAlarmIdForName(target.name, 0, isTomorrow: isTomorrow),
-            title: '${target.iconEmoji} ${target.name} dalam $minutesBefore menit',
-            body: 'Waktu ${target.name} (${target.arabicName}) akan masuk pukul ${target.start}. Siapkan diri.',
-            scheduledTime: beforeStart,
+            title: '${target.iconEmoji} Waktu ${target.name} Telah Tiba',
+            body: 'Waktu ${target.name} (${target.arabicName}) telah masuk pukul ${target.start}.',
+            scheduledTime: startTime,
             payload: 'prayer_start_${target.name}',
           ),
         );
       }
 
-      if (target.end != null) {
+      if (modeBefore == AlarmMode.push) {
+        final beforeStart = startTime.subtract(Duration(minutes: minutesBefore));
+        if (beforeStart.isAfter(now)) {
+          requests.add(
+            ScheduledAlarmRequest(
+              id: _getAlarmIdForName(target.name, 1, isTomorrow: isTomorrow),
+              title: '${target.iconEmoji} ${target.name} dalam $minutesBefore menit',
+              body: 'Waktu ${target.name} (${target.arabicName}) akan masuk pukul ${target.start}. Siapkan diri.',
+              scheduledTime: beforeStart,
+              payload: 'prayer_prep_${target.name}',
+            ),
+          );
+        }
+      }
+
+      if (modeAfter == AlarmMode.push && target.end != null) {
         final endTime = _parseEndTime(target.end!, startTime);
         final beforeEnd = endTime.subtract(Duration(minutes: minutesBefore));
         if (beforeEnd.isAfter(now)) {
           requests.add(
             ScheduledAlarmRequest(
-              id: _getAlarmIdForName(target.name, 1, isTomorrow: isTomorrow),
+              id: _getAlarmIdForName(target.name, 2, isTomorrow: isTomorrow),
               title: '⚠️ Waktu ${target.name} hampir habis!',
               body: 'Waktu ${target.name} (${target.arabicName}) akan berakhir pukul ${target.end}. Segera sholat!',
               scheduledTime: beforeEnd,
@@ -220,6 +251,9 @@ class AlarmService {
   static List<NativePrayerAlarm> buildNativePrayerAlarms({
     required PrayerTimes prayerTimes,
     required Map<String, AlarmMode> modes,
+    required Map<String, int> minutesMap,
+    required Map<String, AlarmMode> modeBeforeMap,
+    required Map<String, AlarmMode> modeAfterMap,
     required DateTime now,
     bool isTomorrow = false,
   }) {
@@ -247,26 +281,44 @@ class AlarmService {
       final mode = modes[target.name] ?? AlarmMode.off;
       if (mode != AlarmMode.alarm) continue; // Native alarm hanya jika mode = alarm
 
+      final minutesBefore = minutesMap[target.name] ?? 10;
+      final modeBefore = modeBeforeMap[target.name] ?? mode;
+      final modeAfter = modeAfterMap[target.name] ?? mode;
       final startTime = _parseTime(target.start, baseDate: baseDate);
-      if (!startTime.isAfter(now)) continue;
+      
+      if (modeBefore == AlarmMode.alarm) {
+        final beforeStart = startTime.subtract(Duration(minutes: minutesBefore));
+        if (beforeStart.isAfter(now)) {
+          requests.add(
+            NativePrayerAlarm(
+              id: _getAlarmIdForName(target.name, 1, isTomorrow: isTomorrow) + 1000,
+              prayerName: 'Persiapan ${target.name}',
+              arabicName: 'Sebentar lagi waktu ${target.name}',
+              scheduledTime: beforeStart,
+              timeLabel: 'Dalam $minutesBefore menit',
+            ),
+          );
+        }
+      }
 
-      requests.add(
-        NativePrayerAlarm(
-          id: _getAlarmIdForName(target.name, 2, isTomorrow: isTomorrow) + 1000,
-          prayerName: target.name,
-          arabicName: target.arabicName,
-          scheduledTime: startTime,
-          timeLabel: target.start,
-        ),
-      );
+      if (modeAfter == AlarmMode.alarm && target.end != null) {
+        final endTime = _parseEndTime(target.end!, startTime);
+        final beforeEnd = endTime.subtract(Duration(minutes: minutesBefore));
+        if (beforeEnd.isAfter(now)) {
+          requests.add(
+            NativePrayerAlarm(
+              id: _getAlarmIdForName(target.name, 2, isTomorrow: isTomorrow) + 1000,
+              prayerName: '${target.name} Hampir Habis',
+              arabicName: 'Waktu ${target.name} akan segera berakhir',
+              scheduledTime: beforeEnd,
+              timeLabel: 'Sisa $minutesBefore menit',
+            ),
+          );
+        }
+      }
     }
 
     return requests;
-  }
-
-  static Future<int> _reminderMinutesBefore() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_minutesBeforeKey) ?? _defaultMinutesBefore;
   }
 
   static Future<bool> _notificationsEnabled() async {
